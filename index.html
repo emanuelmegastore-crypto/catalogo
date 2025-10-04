@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Vendzap Clone — Catálogo & Pedidos</title>
+<style>
+  /* ------- Reset & base ------- */
+  :root{
+    --bg:#f3f5f7;
+    --primary:#07b15a; /* verde estilo WhatsApp */
+    --accent:#000000;  /* azul */
+    --card:#ffffff;
+    --muted:#a39f7b;
+    --danger:#ff5252;
+    --radius:14px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:#102027;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    -webkit-tap-highlight-color:transparent;
+    .card img.logo {
+    width: 300px;
+    height: 300px;
+    object-fit: contain;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fff, #f6fbff);
+    padding: 8px;
+    cursor: pointer;
+  }
+  }
+
+  /* ------- Header (mobile-first, app-like) ------- */
+  header.app{
+    position:sticky; top:0; z-index:30;
+    background:linear-gradient(90deg,var(--accent), #6a54d9);
+    color:white;
+    padding:14px 16px;
+    display:flex; align-items:center; gap:12px;
+    box-shadow:0 6px 18px rgba(10,20,40,0.08);
+  }
+  header .logo {
+    width:44px; height:44px; border-radius:10px; background:rgba(255,255,255,0.12);
+    display:flex; align-items:center; justify-content:center; font-weight:700;
+  }
+  header h1{font-size:16px; margin:0; line-height:1}
+  header p{margin:0;font-size:12px;opacity:0.95}
+
+  /* ------- Container ------- */
+  .container{max-width:1100px;margin:16px auto;padding:0 12px 60px}
+
+  /* ------- Search & categories ------- */
+  .searchbar{display:flex; gap:8px; margin:12px 0}
+  .searchbar input{
+    flex:1; padding:12px 14px; border-radius:10px; border:1px solid #e2e8f0; background:white;
+    font-size:14px;
+  }
+  .filters{display:flex;gap:8px;overflow:auto;padding-bottom:8px;margin:8px 0}
+  .chip{
+    background:white;padding:8px 12px;border-radius:999px;border:1px solid #e6eef7;font-size:13px;cursor:pointer;
+    white-space:nowrap;
+  }
+  .chip.active{background:var(--accent);color:white;border-color:transparent;box-shadow:0 6px 18px rgba(10,20,40,0.06)}
+
+  /* ------- Grid produtos ------- */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  @media(min-width:880px){ .grid{grid-template-columns:repeat(3,1fr)} }
+  .card{
+    background:var(--card); border-radius:12px; padding:12px; box-shadow:0 6px 18px rgba(12,20,40,0.06);
+    display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;
+  }
+  .card .logowrap{width:100%;display:flex;justify-content:center}
+  .card img.logo{
+    width:90px;height:90px;object-fit:contain;border-radius:10px;background:linear-gradient(180deg,#fff,#f6fbff);padding:8px;cursor:pointer;
+  }
+  .card h3{font-size:15px;margin:0}
+  .price{color:var(--primary);font-weight:700}
+  .card .meta{font-size:13px;color:var(--muted)}
+  .card .controls{display:flex;gap:8px;align-items:center;margin-top:6px}
+  .card select, .card input[type=number]{
+    padding:8px;border-radius:8px;border:1px solid #e6eef7;background:#fbfdff;font-size:13px;
+  }
+  .card button.add{
+    background:var(--primary); color:white; border:none; padding:8px 12px;border-radius:10px;font-weight:700; cursor:pointer;
+  }
+
+  /* ------- Floating cart button ------- */
+  .cart-float{
+    position:fixed; right:16px; bottom:18px; z-index:60;
+    display:flex;flex-direction:column;align-items:flex-end;gap:8px;
+  }
+  .cart-btn{
+    background:linear-gradient(180deg,var(--primary),#05964a);
+    color:white;padding:14px 16px;border-radius:999px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(3,40,22,0.18);
+    cursor:pointer;border:none;font-weight:700;
+  }
+  .cart-badge{
+    background:#fff;color:var(--primary);min-width:28px;height:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:800;
+    box-shadow:0 6px 12px rgba(3,40,22,0.12);
+  }
+
+  /* ------- Drawer / Cart panel ------- */
+  .drawer{
+    position:fixed; top:0; right:0; height:100%; width:100%; max-width:420px; transform:translateX(110%);
+    background:white; z-index:70; box-shadow:-20px 0 60px rgba(12,20,40,0.12); transition:transform .38s cubic-bezier(.2,.9,.25,1);
+    display:flex;flex-direction:column;
+  }
+  .drawer.open{transform:translateX(0);}
+  .drawer .head{padding:16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f3f7}
+  .drawer .content{padding:14px;overflow:auto;flex:1}
+  .drawer .item{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px dashed #eef3f8}
+  .drawer .item img{width:64px;height:64px;object-fit:contain;border-radius:8px}
+  .drawer .item .info{flex:1}
+  .drawer .item .info b{display:block}
+  .drawer .footer{padding:16px;border-top:1px solid #f0f3f7}
+  .drawer .btn-primary{width:100%;padding:12px;border-radius:10px;border:none;background:var(--accent);color:white;font-weight:800}
+  .drawer .btn-secondary{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef7;background:white;color:#113344;font-weight:700;margin-top:8px}
+
+  /* ------- Checkout form styling inside drawer ------- */
+  .form-row{display:flex;gap:8px}
+  .form-row .col{flex:1}
+  input,select,textarea{font-size:14px}
+  textarea{min-height:84px;padding:10px;border-radius:8px;border:1px solid #e6eef7}
+
+  /* ------- small helpers ------- */
+  .muted{color:var(--muted);font-size:13px}
+  .center{display:flex;justify-content:center;align-items:center}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="logo">EM</div>
+  <div style="flex:1">
+    <h1 style="font-size:15px">Emanuel MegaStore</h1>
+    <p style="opacity:.95;font-size:12px;margin-top:4px">Catálogo de camisas — clique na foto da camisa para abrir a pasta do Drive com mais opções de modelo</p>
+  </div>
+</header>
+
+<main class="container">
+  <div class="searchbar">
+    <input id="q" type="search" placeholder="Buscar time, modelo ou referência..." oninput="renderProdutos()">
+  </div>
+
+  <div class="filters" id="filtros">
+    <!-- chips serão geradas dinamicamente -->
+  </div>
+
+  <section class="grid" id="gridProdutos">
+    <!-- produtos renderizados via JS -->
+  </section>
+</main>
+
+<!-- Floating cart -->
+<div class="cart-float">
+  <div class="cart-info muted center" style="padding-right:4px">Total: <span id="valorTotalFloat" style="font-weight:800;margin-left:8px">R$ 0,00</span></div>
+  <button class="cart-btn" id="openCart" onclick="toggleDrawer(true)">
+    <span style="font-size:15px">Carrinho</span>
+    <div class="cart-badge" id="badgeCount">0</div>
+  </button>
+</div>
+
+<!-- Drawer (cart + checkout) -->
+<aside class="drawer" id="drawer">
+  <div class="head">
+    <div>
+      <div style="font-weight:800">Seu Pedido</div>
+      <div class="muted" id="itensResumo">0 itens</div>
+    </div>
+    <div>
+      <button onclick="toggleDrawer(false)" style="background:none;border:none;font-weight:700;font-size:18px;cursor:pointer">✕</button>
+    </div>
+  </div>
+
+  <div class="content" id="cartContent">
+    <div class="empty" id="emptyCart">Seu carrinho está vazio. Adicione produtos.</div>
+    <!-- items -->
+  </div>
+
+  <div class="footer">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div class="muted">Subtotal</div>
+        <div style="font-weight:800;font-size:18px" id="subtotal">R$ 0,00</div>
+      </div>
+      <div style="width:42%"></div>
+    </div>
+
+    <hr style="margin:12px 0;border:none;border-top:1px solid #f2f6fa">
+
+    <!-- Checkout Form -->
+    <div style="margin-bottom:8px" class="muted">Preencha os dados para finalizar</div>
+    <div style="display:grid;gap:8px">
+      <input id="clienteNome" placeholder="Nome completo" />
+      <input id="clienteWhatsapp" placeholder="WhatsApp (somente números, ex: 5511999998888)" />
+      <select id="tipoEntrega" onchange="onTipoEntregaChange()">
+        <option value="">Tipo de entrega</option>
+        <option value="Retirada na loja">Retirada na loja</option>
+        <option value="Frete">Frete</option>
+      </select>
+      <input id="enderecoEntrega" placeholder="Endereço (apenas se escolher frete)" style="display:none" />
+      <textarea id="observacao" placeholder="Observações (ex: nº, preferências, referência)"></textarea>
+      <button class="btn-primary" onclick="enviarWhatsApp()">Enviar pedido via WhatsApp</button>
+      <button class="btn-secondary" onclick="limparCarrinho()">Limpar carrinho</button>
+    </div>
+    <div style="margin-top:10px;font-size:12px;color:#7b8ca3">Ao enviar, abriremos o WhatsApp da loja com a mensagem do pedido.</div>
+  </div>
+</aside>
+
+<script>
+  /************* Configuração (substitua conforme seu uso) *************/
+  const LOJA_WHATSAPP = "5579991367108"; // Ex: 5511999998888 (DDI+DDD+numero)
+  /*********************************************************************/
+
+  // Produtos de exemplo: cada produto tem driveLink (abrir ao clicar no logo)
+  const produtosOriginais = [
+     // TIMES INTERNACIONAL// TIMES INTERNACIONAL// TIMES INTERNACIONAL// TIMES INTERNACIONAL// TIMES INTERNACIONAL// TIMES INTERNACIONAL// TIMES INTERNACIONAL
+    { id:"fla1", nome:"Camisa OUTROS CLUBES PREMIUM", preco:0., logo:"outros.webp", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1B6vLy-M50wrFke3kY-o63xyizgwYRAig" },
+    { id:"fla1", nome:"Camisa Arsenal PREMIUM", preco:0., logo:"arse.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1c2J6tZewtc3BOcRFjdZv83b96qmWxb2f" },
+    { id:"fla1", nome:"Camisa Napoli PREMIUM", preco:0., logo:"napo.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1-in4qwLXLXoZc8ouQ1DbdaAa3KcwkjTv" },
+    { id:"fla1", nome:"Camisa Ajax 2025 PREMIUM", preco:0., logo:"aja.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/15Fya03ZxHqJcahhQzxA_GhQ81E7trFct" },
+    { id:"fla1", nome:"Camisa Borusia PREMIUM", preco:0., logo:"boru.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/13qG4_iqQPyFH7Ca-j02dBZnkUqVtYhiB" },
+    { id:"fla1", nome:"Camisa Chelsea 2025 PREMIUM", preco:0., logo:"chel.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1Tr3OfQIiS4Oso8_zet_IivgVWobGkrSr" },
+    { id:"fla1", nome:"Camisa Millan PREMIUM", preco:0., logo:"millan.jpeg", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1yX7Cy_Tj0bd97-ReJlNL2xgcHA-D4wTE" },    
+    { id:"fla1", nome:"Camisa Bayer de Munchen 2025 PREMIUM", preco:0., logo:"bayer.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1P7KtaOqmNLZWqLFa39LV4xQUd5HjyIPe" },
+    { id:"fla1", nome:"Camisa Inter de Milan PREMIUM", preco:0., logo:"intermilan.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1X_kBwmOIQYT34pvh6K-kj49y3S-wkWSc" },
+    { id:"fla1", nome:"Camisa Inter de Miami 2025 PREMIUM", preco:0., logo:"intermiami.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1OcJkIARJEMuxjuinU6_P58lrOIarKhgX" },
+    { id:"fla1", nome:"Camisa Liverpool 2025 PREMIUM", preco:0., logo:"live.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1GNsigZhWO8YzV0XwCcLJZ44tjuP1B8mb" },
+    { id:"fla1", nome:"Camisa Juventus 2025 PREMIUM", preco:0., logo:"juve.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/15c81VO9o7B8yW8OLR4aH3jU06X7uW8XB" },
+    { id:"fla1", nome:"Camisa Manchester Uniter 2025 PREMIUM", preco:0., logo:"manch.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1FSaE4F43fi8KPW35eaJDVcJywwPxZtbE" },
+    { id:"fla1", nome:"Camisa Manchester City 2025 PREMIUM", preco:0., logo:"mcity.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/13zIWvOgiv64MPXFHqfoFVPHAXCimjWQ8" },
+    { id:"fla1", nome:"Camisa PSG 2025 PREMIUM", preco:0., logo:"psg.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1N3VBtg5vmEtLoPi3u6RM0ts13rUYOIaj" },
+    { id:"fla1", nome:"Camisa Real Madrid  2025 PREMIUM", preco:0., logo:"real.jpeg", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1lPspnA-IUyy-rgL8LZvNFwQ1g6u_T3Ku" },
+    { id:"fla1", nome:"Camisa Remo 2025 PREMIUM", preco:0., logo:"remo.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1b7cP8iiQLYxOOLS3rdcbkUqqk1Vp6SC9" },
+    { id:"fla1", nome:"Camisa Roma 2025 PREMIUM", preco:0., logo:"roma.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/16rmFGmUt-p-N-50YUQrN5QOsssqsdiQO" },
+    { id:"fla1", nome:"Camisa Totteram 2025 PREMIUM", preco:0., logo:"totte.png", categoria:"Internacional", driveLink:"https://drive.google.com/drive/u/1/folders/1Ue6uSAxgxk52B42DQdu_h2SQm8xfRqAd" },
+      // SELEÇõES ///// // SELEÇõES ///// // SELEÇõES ///// // SELEÇõES ///// // SELEÇõES ///// // SELEÇõES ///// // SELEÇõES ///// // SELEÇõES ///// // SELEÇõES /////
+    { id:"bra1", nome:"Camisa Seleção Brasil PREMIUM", preco:0.00, logo:"bra.webp", categoria:"Seleções", driveLink:"https://drive.google.com/drive/u/1/folders/1gBpU6IAjCdkdEzHMqXMo9l46kx7StoW9" },
+    { id:"fla1", nome:"Camisa França 2025 PREMIUM", preco:0., logo:"fran.png", categoria:"Seleções", driveLink:"https://drive.google.com/drive/u/1/folders/1xjUZRXC6MrEO2xqEW6pj50aPilai-K3P" },
+    { id:"fla1", nome:"Camisa Japão Luffy 2025 PREMIUM", preco:0., logo:"japluffy.png", categoria:"Seleções", driveLink:"https://drive.google.com/drive/u/1/folders/1PSD_Erai4v2S3wd_8YbU7lxndXMylTrN" },
+    { id:"fla1", nome:"Camisa Agentina 2025 PREMIUM", preco:0., logo:"age.png", categoria:"Seleções", driveLink:"https://drive.google.com/drive/u/1/folders/1lcAmW8nbzh4KSFXaeyJEO77axKSBDZ7Y" },
+    // TIMES BRASILEIROS  // TIMES BRASILEIROS // TIMES BRASILEIROS // TIMES BRASILEIROS // TIMES BRASILEIROS // TIMES BRASILEIROS // TIMES BRASILEIROS // TIMES BRASILEIROS // TIMES BRASILEIROS
+    { id:"fla1", nome:"Camisa Flamengo 2025 PREMIUM", preco:0., logo:"fla.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1WpzqgT8cgjdJ1Ol5voHhUsqAEs2TvWvD" },
+    { id:"flu1", nome:"Camisa Fluminense 2025 PREMIUM", preco:0., logo:"flu.jpeg", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1vsfhhL1QNGyPANAAG7eaZ5ML0V3JrLub" },
+    { id:"vas1", nome:"Camisa Vasco da Gama 2025 PREMIUM", preco:0., logo:"vasc.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1Zp6H7nfT6RRLZtgUb6f5jdGGsdnS7FwW" },
+    { id:"fla1", nome:"Camisa Corinthias 2025 PREMIUM", preco:0., logo:"corin.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1yPlELeBzinPPXFzPOpoEY8tqVPj0ynMj" },
+    { id:"pal1", nome:"Camisa Palmeiras 2024 PREMIUM", preco:0.00, logo:"pal.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1Oxpq4VlKCaKSJVuIftd7zcGmdI2KPUTc" },
+    { id:"flu1", nome:"Camisa São Paulo 2025 PREMIUM", preco:0., logo:"sao.jpeg", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1WHgfedbKBfs38fIgTN9UxdA3MbXcy6yK" },
+    { id:"fla1", nome:"Camisa Santos 2025 PREMIUM", preco:0., logo:"santos.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1rc3jC3cpmIy0qERnNJz6N00g9AOwRrP_" },
+    { id:"fla1", nome:"Camisa Sapaio correia 2025 PREMIUM", preco:0., logo:"sampaio.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1jtGPBik3vsbQyt4Oer6P_gDenaEzlKA4" },
+    { id:"flu1", nome:"Camisa Santa Cruz 2025 PREMIUM", preco:0., logo:"santa.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/11QPhQT6buVT6UV2JKujvV6xrGhKHdEPH" },
+    { id:"fla1", nome:"Camisa Atletico Mineiro 2025 PREMIUM", preco:0., logo:"amine.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1OayprZA_zUirlvt5wsoF1XK1nUtEEp1-" },
+    { id:"fla1", nome:"Camisa Sport 2025 PREMIUM", preco:0., logo:"sport.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1jO-x_RJ13mm5MyI_bLJF-bJKVR9pLgY8" },
+    {id:"fla1", nome:"Camisa Ceara 2025 PREMIUM", preco:0., logo:"cear.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1R0-zIpD0rKoNIzCZmTaQonTJmwNI3t9f" },
+    { id:"flu1", nome:"Camisa Vitoria 2025 PREMIUM", preco:0., logo:"vito.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1WK-GXocLD_lI8h9Ym8GUrKJ7A7wB8GYB" },
+    { id:"bot1", nome:"Camisa Botafogo 2025 PREMIUM", preco:0., logo:"bota.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/1hsMGJYjmt3_e6xNRe8nQP75UAP_2MIaI" },
+    { id:"bot1", nome:"Camisa Fortaleza 2025 PREMIUM", preco:0., logo:"forta.png", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/16AAkNMSostAiha5JKODoCDoP3M8zTmT3" },
+    { id:"bra1", nome:"Camisa Grêmio PREMIUM", preco:0.00, logo:"gremio.jpeg", categoria:"Brasileirão", driveLink:"https://drive.google.com/drive/u/1/folders/14Wg7EJZ2MDLsvMdM20yEbYfOtMUx5xJ4" },
+    
+    
+  
+    
+    
+  ];
+
+  // Estado
+  let produtos = [...produtosOriginais];
+  let cart = []; // {produtoId, nome, preco, tamanho, quantidade, logo, driveLink}
+  let filtroCategoria = "";
+
+  // Render filtros
+  function renderFiltros(){
+    const categorias = [...new Set(produtosOriginais.map(p=>p.categoria))];
+    const f = document.getElementById("filtros");
+    f.innerHTML = "";
+    const chipAll = document.createElement("div");
+    chipAll.className = "chip "+(filtroCategoria===""?"active":"");
+    chipAll.textContent = "Todos";
+    chipAll.onclick = ()=>{ filtroCategoria=""; renderProdutos() };
+    f.appendChild(chipAll);
+    categorias.forEach(c => {
+      const d = document.createElement("div");
+      d.className = "chip "+(filtroCategoria===c?"active":"");
+      d.textContent = c;
+      d.onclick = ()=>{ filtroCategoria = (filtroCategoria===c?"":c); renderProdutos() };
+      f.appendChild(d);
+    });
+  }
+
+  // Render Produtos
+  function renderProdutos(){
+    const q = (document.getElementById("q").value||"").toLowerCase().trim();
+    const grid = document.getElementById("gridProdutos");
+    grid.innerHTML = "";
+    let lista = produtosOriginais.filter(p=>{
+      if(filtroCategoria && p.categoria !== filtroCategoria) return false;
+      if(!q) return true;
+      return p.nome.toLowerCase().includes(q) || p.categoria.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
+    });
+    if(lista.length===0){
+      grid.innerHTML = `<div style="grid-column:1/-1;background:transparent;padding:30px;text-align:center;color:var(--muted)">Nenhum produto encontrado</div>`;
+      return;
+    }
+    lista.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <div class="logowrap">
+          <img class="logo" src="${p.logo}" alt="${p.nome}" title="Abrir pasta no Drive" onclick="openDrive('${encodeURI(p.driveLink)}')" />
+        </div>
+        <h3>${p.nome}</h3>
+        <div class="meta">${p.categoria}</div>
+        <div class="price" style="margin-top:6px">R$ ${p.preco.toFixed(2).replace('.',',')}</div>
+        <div class="controls" style="margin-top:6px">
+          <select id="tam-${p.id}" aria-label="Tamanho">
+            <option value="P">P</option><option value="M">M</option><option value="G">G</option><option value="GG">GG</option>
+          </select>
+          <input id="qtd-${p.id}" type="number" min="1" value="1" style="width:78px" />
+        </div>
+        <div style="width:100%;margin-top:8px">
+          <button class="add" onclick="adicionarAoCarrinho('${p.id}')">Adicionar</button>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+    renderResumoUI();
+  }
+
+  // Open Google Drive folder in new tab
+  function openDrive(link){
+    // Se o usuário deixou link vazio, não faz nada
+    if(!link || link.includes("SEU_FOLDER_ID")) {
+      alert("Abra a pasta do Google Drive: substitua o campo driveLink deste produto com o link público da sua pasta.");
+      return;
+    }
+    window.open(link, "_blank");
+  }
+
+  // Adicionar ao carrinho
+  function adicionarAoCarrinho(prodId){
+    const prod = produtosOriginais.find(p=>p.id===prodId);
+    if(!prod) return;
+    const tamanho = document.getElementById(`tam-${prodId}`).value;
+    const quantidade = parseInt(document.getElementById(`qtd-${prodId}`).value) || 1;
+    // se já existir o mesmo produto+tamanho, somar qtd
+    const existente = cart.find(i => i.produtoId===prodId && i.tamanho===tamanho);
+    if(existente){
+      existente.quantidade += quantidade;
+    } else {
+      cart.push({
+        produtoId: prod.id,
+        nome: prod.nome,
+        preco: prod.preco,
+        tamanho,
+        quantidade,
+        logo: prod.logo,
+        driveLink: prod.driveLink
+      });
+    }
+    renderCarrinho();
+    // abrir drawer automaticamente (com animação)
+    toggleDrawer(true);
+  }
+
+  // Render cart drawer contents
+  function renderCarrinho(){
+    const content = document.getElementById("cartContent");
+    content.innerHTML = "";
+    if(cart.length===0){
+      document.getElementById("emptyCart").style.display = "block";
+      document.getElementById("itensResumo").innerText = "0 itens";
+    } else {
+      document.getElementById("emptyCart").style.display = "none";
+      document.getElementById("itensResumo").innerText = `${cart.reduce((s,i)=>s+i.quantidade,0)} itens`;
+      cart.forEach((it, idx) => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <img src="${it.logo}" alt="${it.nome}" onclick="openDrive('${encodeURI(it.driveLink)}')" style="cursor:pointer" />
+          <div class="info">
+            <b>${it.nome}</b>
+            <div class="muted">Tam: ${it.tamanho} • R$ ${it.preco.toFixed(2).replace('.',',')}</div>
+            <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+              <button onclick="alterarQuantidade(${idx}, -1)" style="padding:6px 8px;border-radius:8px;border:1px solid #eef3f8;background:white;cursor:pointer">−</button>
+              <div style="min-width:36px;text-align:center">${it.quantidade}</div>
+              <button onclick="alterarQuantidade(${idx}, +1)" style="padding:6px 8px;border-radius:8px;border:1px solid #eef3f8;background:white;cursor:pointer">+</button>
+              <button onclick="removerItem(${idx})" style="margin-left:8px;background:none;border:none;color:var(--danger);cursor:pointer">Remover</button>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:800">R$ ${(it.preco*it.quantidade).toFixed(2).replace('.',',')}</div>
+          </div>
+        `;
+        content.appendChild(el);
+      });
+    }
+    atualizaBadgeEValores();
+  }
+
+  function alterarQuantidade(index, delta){
+    cart[index].quantidade = Math.max(1, cart[index].quantidade + delta);
+    renderCarrinho();
+  }
+  function removerItem(index){
+    cart.splice(index,1);
+    renderCarrinho();
+  }
+  function limparCarrinho(){
+    if(!confirm("Deseja limpar o carrinho?")) return;
+    cart = [];
+    renderCarrinho();
+  }
+
+  // abrir/fechar drawer
+  function toggleDrawer(open){
+    const d = document.getElementById("drawer");
+    if(open) d.classList.add("open"); else d.classList.remove("open");
+  }
+
+  // calcular subtotal e atualizar UI
+  function atualizaBadgeEValores(){
+    const count = cart.reduce((sum,it)=>sum+it.quantidade,0);
+    const subtotal = cart.reduce((s,it)=>s + it.preco * it.quantidade,0);
+    document.getElementById("badgeCount").innerText = count;
+    document.getElementById("subtotal").innerText = "R$ " + subtotal.toFixed(2).replace('.',',');
+    document.getElementById("valorTotalFloat").innerText = "R$ " + subtotal.toFixed(2).replace('.',',');
+    // resumo curto
+    const itensResumo = cart.length ? `${cart.length} produtos • ${count} un` : "0 itens";
+    document.getElementById("itensResumo").innerText = itensResumo;
+    // mostrar/ocultar empty
+    document.getElementById("emptyCart").style.display = cart.length===0 ? "block" : "none";
+  }
+
+  // Tipo de entrega
+  function onTipoEntregaChange(){
+    const t = document.getElementById("tipoEntrega").value;
+    document.getElementById("enderecoEntrega").style.display = t==="Frete" ? "block" : "none";
+  }
+
+  // Enviar pedido via WhatsApp (monta mensagem bonita)
+  function enviarWhatsApp(){
+    if(!LOJA_WHATSAPP || LOJA_WHATSAPP.includes("SEUNUMERO")) {
+      alert("Configure a constante LOJA_WHATSAPP no topo do arquivo com o número da sua loja (ex: 5511999998888).");
+      return;
+    }
+    if(cart.length===0){ alert("Carrinho vazio."); return; }
+    const nome = (document.getElementById("clienteNome").value||"").trim();
+    const wcli = (document.getElementById("clienteWhatsapp").value||"").trim();
+    const tipo = (document.getElementById("tipoEntrega").value||"").trim();
+    const endereco = (document.getElementById("enderecoEntrega").value||"").trim();
+    const obs = (document.getElementById("observacao").value||"").trim();
+
+    if(!nome){ alert("Informe seu nome."); return; }
+    if(!wcli){ alert("Informe seu WhatsApp (somente números)."); return; }
+    if(!tipo){ alert("Escolha o tipo de entrega."); return; }
+    if(tipo==="Frete" && !endereco){ alert("Informe o endereço para entrega."); return; }
+
+    // Monta mensagem com quebras de linha codificadas
+    let msg = "📦 *Novo Pedido*%0A";
+    msg += "%0A*Cliente:* " + encodeURIComponent(nome) + "%0A";
+    msg += "*WhatsApp Cliente:* " + encodeURIComponent(wcli) + "%0A%0A";
+    msg += "*Itens:*%0A";
+    let total = 0;
+    cart.forEach(it => {
+      const subtotal = it.preco * it.quantidade;
+      total += subtotal;
+      msg += `- ${encodeURIComponent(it.nome)} | Tam: ${encodeURIComponent(it.tamanho)} | Qtd: ${it.quantidade} | R$ ${subtotal.toFixed(2)}%0A`;
+    });
+    msg += `%0A*Total:* R$ ${total.toFixed(2)}%0A`;
+    msg += `%0A*Entrega:* ${encodeURIComponent(tipo)}%0A`;
+    if(tipo==="Frete") msg += `*Endereço:* ${encodeURIComponent(endereco)}%0A`;
+    if(obs) msg += `%0A*Observações:* ${encodeURIComponent(obs)}%0A`;
+
+    // Abre WhatsApp da loja com mensagem pronta
+    const wa = `https://wa.me/${LOJA_WHATSAPP}?text=${OLÁ-FIQUE-AVONTADE-PARA-ESCOLHER-OS-SEUSPRODUTOS-BREVE-COMEÇAREMOS-SEU-ATENDIMENTO}`;
+    window.open(wa,"_blank");
+  }
+
+  // UI inicial
+  renderFiltros();
+  renderProdutos();
+  renderCarrinho();
+
+  // Helper para acessibilidade: fechar drawer com ESC
+  document.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){ toggleDrawer(false); }
+  });
+
+  // Render resumo (badge/total) chamado no começo e sempre que necessário
+  function renderResumoUI(){ atualizaBadgeEValores(); }
+
+</script>
+</body>
+</html>
