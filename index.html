@@ -90,6 +90,56 @@
     background:var(--primary); color:white; border:none; padding:8px 12px;border-radius:10px;font-weight:700; cursor:pointer;
   }
 
+  /* ------- Responsividade ------- */
+  @media (max-width: 768px) {
+    header.app {
+      flex-wrap: wrap;
+      text-align: center;
+      justify-content: center;
+    }
+    header .logo img {
+      width: 40px;
+      height: 40px;
+      margin-bottom: 6px;
+    }
+    header h1 { font-size: 15px; }
+    header p { font-size: 12px; }
+    .container { padding: 10px 12px 80px; }
+    .filters {
+      gap: 6px;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+    }
+    .grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .card img.logo {
+      height: auto;
+      max-width: 220px;
+    }
+    .drawer {
+      width: 100%;
+    }
+    .drawer .head {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+  }
+
+  @media (max-width: 400px) {
+    .cart-float {
+      right: 12px;
+      bottom: 12px;
+      transform: scale(0.9);
+    }
+    .chip { font-size: 12px; padding: 5px 10px; }
+    .card h3 { font-size: 14px; }
+    .card button { font-size: 13px; }
+  }
+
   /* ------- Floating cart button ------- */
   .cart-float{
     position:fixed; right:16px; bottom:18px; z-index:60;
